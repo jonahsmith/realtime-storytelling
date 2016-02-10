@@ -1,0 +1,3 @@
+virenv/
+*.notes.txt
+*.pyc

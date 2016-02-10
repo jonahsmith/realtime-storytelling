@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+
+<head>
+    <title>NYC Air Quality</title>
+</head>
+<body>
+    <div id='currentReading'>
+        <div id='info'>
+            <span>The current concentration of fine particles<br>in NYC air is...</span>
+            <br><br>
+            <span id='measure'></span>
+            <span id='units'>&#956;g/m<sup>3</sup></span>
+            <br><br>
+            <span>That is considered <b><span id='safety'></span></b>.
+            <br><br>
+            <span><a target='_blank' href='http://www.airnow.gov/index.cfm?action=aqibasics.particle'>More on this number.</a></span>
+        </div>
+    </div>
+    
+    <div id='metadata'>
+        <span>Last reading: <span id='lastUpdate'></span></span>
+        <br>
+        <span>The PM<sub>2.5</sub> reading comes from a <a target='_blank' href='http://www.dec.ny.gov/airmon/stationStatus.php?stationNo=73'>sensor</a> at <a target='_blank' href='https://www.google.com/maps/place/The+City+College+of+New+York/@40.7877885,-74.0255014,12z/data=!4m2!3m1!1s0x89c2f6657fa896f5:0xa785a9c0ac09561a'>City College</a> in uptown Manhattan.</span>
+    </div>
+    
+    <script>
+    
+    function handleMessage(event) {
+        var newData = JSON.parse(event.data);
+        var newReading = newData.p25
+        
+        /*  These cutoff points came from manually inspecting this government site: http://airnow.gov/index.cfm?action=resources.conc_aqi_calc
+            They are approimations, as I only inspected to the ones place (e.g. integer cutoffs), whereas they seem to be decimal cutoffs
+            in the official calculator. I think this is justifiable, though, because:
+                a) this is more conservative than the calculator (lower values for the next cutoff than the calculator)
+                b) the sensors themselves have some error margin, so we're dealing with inexact numbers to begin with
+        */
+        if (newReading <= 12) {
+            changeBg('green');
+            changeSafety('good');
+        } else if (newReading > 12 && newReading <= 35) {
+            changeBg('#f2f20d');
+            changeSafety('moderate');
+        } else if (newReading > 35 && newReading <= 55) {
+            changeBg('orange');
+            changeSafety('<br>unhealthy for sensitive people')
+        } else {
+            changeBg('red');
+            changeSafety('unhealthy');
+        }
+        document.getElementById('measure').innerHTML = newReading;
+        document.getElementById('lastUpdate').innerHTML = newData.update_time;
+    }
+    
+    function setupWS() {
+        var ws = new WebSocket('ws://localhost:8080');
+        ws.onmessage = handleMessage;
+    }
+    
+    function changeBg(newColor) {
+        document.body.style.background = newColor;
+    }
+    
+    function changeSafety(newRating) {
+        document.getElementById('safety').innerHTML = newRating;
+    }
+    
+    setupWS();
+    
+    </script>
+    
+    <style>
+    body {
+        font-family: Helvetica, Arial;
+    }
+    
+    #measure {
+        font-size: 75px;
+    }
+    
+    #currentReading {
+    	margin: auto;
+    }
+    
+    #metadata {
+        font-size: 12px;
+        position: fixed;
+        left: 10px;
+        bottom: 10px;
+    }
+    
+    #currentReading {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translateX(-50%) translateY(-50%);
+
+        width: 400px;
+        height: 400px;
+        
+        -webkit-border-radius: 200px;
+        -moz-border-radius: 200px;
+        border-radius: 200px; 
+        background-color: white;
+        opacity: 0.5;
+        
+        text-align: center;
+    }
+    
+    #info {
+        width: 350px;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translateX(-50%) translateY(-50%);
+    }
+    
+    a {
+        color: black;
+        text-decoration: none;
+        border-bottom: 1px black dashed;
+    }
+    
+    </style
+    
+</body>
+    
