@@ -4,7 +4,7 @@ uni: jes2258
 date: February 10, 2016
 course: Storytelling with Streaming Data
 assignment: Assignment 1
-...
+---
 
 # The data
 
