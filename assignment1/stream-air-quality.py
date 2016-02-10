@@ -2,10 +2,10 @@
 # Jonah Smith
 #
 # This script polls a New York State government website for new air quality
-# readings from a sensor at City College in uptown Manhattan every ten minutes.
-# When there is a new reading, it is emitted to stdout as a JSON string. This
-# can be viewed as is, or streamed over a websocket using a tool like
-# websocketd. The measure for air quality is PM2.5, which is roughly the
+# readings from a sensor at IS 143, a junior high in uptown Manhattan, every
+# ten minutes. When there is a new reading, it is emitted to stdout as a JSON
+# string. This can be viewed as is, or streamed over a websocket using a tool
+# like websocketd. The measure for air quality is PM2.5, which is roughly the
 # concentration of particles smaller than 2.5 micrometers (often called 'fine
 # particles') in the air. More information about this measure can be found here:
 # http://www.airnow.gov/index.cfm?action=aqibasics.particle
@@ -13,8 +13,8 @@
 # The expected update frequency is about once per hour. The readings seem
 # to be delayed by about an hour and fifteen minutes. For example, the reading
 # for 10am becomes available around 11:15am. The documentation suggests that
-# the data should be more or less realtime, so it is possible that the readings
-# will be released more quickly in the future.
+# the data should be updated hourly on the hour, so it is possible that the
+# readings will be released more quickly in the future.
 #
 # source url: http://www.dec.ny.gov/airmon/getParameters.php?stationNo=73
 
@@ -23,30 +23,19 @@ from datetime import datetime, timedelta
 import time
 import requests
 
-# last_update is used to decided whether the most recent reading from the server
-# has already been seen and emitted by this script. We need to initialize a
-# value when we start up, though, because the script has not yet seen any
-# readings. 4 hours ago was an arbitrary choice, but based on a conceptual
-# threshold: if the newest data are actually from further back than four hours
-# ago, it's probably too old to be useful anyway.
-last_update = datetime.now() - timedelta(hours=4)
+# last_update is a timestamp used to decided whether the most recent reading
+# from the server has already been seen and emitted by this script. We need to
+# initialize a value when we start up, though, because the script has not yet
+# seen any readings. 1 day was an arbitrary choice, but based on a conceptual
+# threshold: if the newest data are actually from further back than a day,
+# it's probably too old to be useful anyway.
+last_update = datetime.now() - timedelta(days=1)
 
 # This loop will repeat indefinitely. It polls the data source, looks for a new
 # reading, emits it if there is one, and then waits for 10 minutes.
-# (Explanation for poll speed below.)
+# (Explanation for polling rate below.)
 while True:
     curr_time = datetime.now()
-    
-    # start_time is used to cover an edge case, which is very early in the
-    # morning (say, 12-2am). Usually we can just ask for today's readings, but
-    # very early in the morning, the most recent reading may actually have been
-    # the previous night. In this case, we want both yesterday's data and
-    # today's data (if any). Early in the morning, subtracting 4 hours gives us
-    # the previous day, so we will be requesting both yesterday's and today's
-    # data, as desired. Note that if it's the middle of the day, the
-    # start_time will be the same day as curr_time, so we will only get back
-    # data for the current day, to reduce the size of the data response.
-    start_time = curr_time - timedelta(hours=4)
     
     # This API call was uncovered by snooping around the source of the NYS air
     # sensor report request webpage:
@@ -60,24 +49,28 @@ while True:
                 'channel8': 'on',
                 
                 # `startDate` and `endDate` are the dates (in dd/mm/yyyy
-                # format) we are interested in. As explained above, in the
-                # middle of the day, these are equal. Early in the morning,
-                # there may not be any readings for the current day, so we also
-                # request the previous day.
-                'startDate': start_time.strftime('%d/%m/%Y'),
+                # format) we are interested in. Using the last update as
+                # startDate covers the early morning edge case: early in the
+                # morning (say, midnight or 1am), the latest reading might be
+                # from the previous calendar day, so we cannot look only at the
+                # current day's data. In this scenario, though, the most recent
+                # update will be from the previous day, so the code below will
+                # request yesterday's data as well.
+                'startDate': last_update.strftime('%d/%m/%Y'),
                 'endDate': curr_time.strftime('%d/%m/%Y'),
                 
-                # these do not seem to be user configurable, as experiments
+                # These do not seem to be user configurable, as experiments
                 # returned blank data.
                 'timebase': 60,
                 'direction': 'back',
                 'reports': 'CSV',
                 
                 # This is the ID for the sensor station we want. In this case,
-                # we are interested in station 73, at City College.
-                'stationNo': '73',
+                # we are interested in station 56, at a Washington Heights
+                # school (IS 143).
+                'stationNo': '56',
                 
-                # These does not seem to be user configurable.
+                # These do not seem to be user configurable.
                 'numOfChannels': 8,
                 'submitButton':'Create Report'
               }
@@ -96,11 +89,11 @@ while True:
     latest_date = parsed_reading[0].replace('"', '')
     latest_time = parsed_reading[1].replace('"', '')
     # The fourth column (index 3 when we have 0 indexing) contains the P2.5
-    # reading, one of the main ways to determine air quality.
+    # reading, one of the measures used to determine air quality.
     latest_p25 = parsed_reading[3]
 
     # We need to convert the datetime string to a datetime object in Python so
-    # we can compare to this most recent reading with the last reading emitted
+    # we can compare this most recent reading with the last reading emitted
     # by this script. We concatenate the date and time strings with a space
     # between them, and we decode that string based on the observation that the
     # format is: YYYY-MM-DD HH:MM .
@@ -120,4 +113,4 @@ while True:
     # get new readings soon-ish without inundating the servers. This way, the
     # upper limit for how long we might go without seeing a new message is 10
     # minutes, a reasonable amount of time when we're talking in units of hours.
-    time.sleep(60)
+    time.sleep(600)

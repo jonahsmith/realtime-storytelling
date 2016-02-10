@@ -1,3 +1,11 @@
+# AIR QUALITY STREAM TESTER
+#
+# Jonah Smith
+#
+# This script emits JSON strings just like the real stream processor, but with
+# a higher frequency and carefully designed data to show the full range of
+# behavior.
+
 import sys
 import time
 

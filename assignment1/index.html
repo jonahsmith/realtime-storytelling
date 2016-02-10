@@ -20,11 +20,17 @@
     <div id='metadata'>
         <span>Last reading: <span id='lastUpdate'></span></span>
         <br>
-        <span>The PM<sub>2.5</sub> reading comes from a <a target='_blank' href='http://www.dec.ny.gov/airmon/stationStatus.php?stationNo=73'>sensor</a> at <a target='_blank' href='https://www.google.com/maps/place/The+City+College+of+New+York/@40.7877885,-74.0255014,12z/data=!4m2!3m1!1s0x89c2f6657fa896f5:0xa785a9c0ac09561a'>City College</a> in uptown Manhattan.</span>
+        <span>The PM<sub>2.5</sub> reading comes from a <a target='_blank' href='http://www.dec.ny.gov/airmon/stationStatus.php?stationNo=56'>sensor</a> at <a target='_blank' href='https://www.google.com/maps/place/Junior+High+School+143+Eleanor+Roosevelt/@40.7909223,-74.0032394,11.69z/data=!4m2!3m1!1s0x0:0xe19ac3067173e0f7'>IS 143 Junior High School</a> in uptown Manhattan.</span>
     </div>
     
     <script>
     
+    
+    /*  This function takes an event from the websocket, parses out the air quality
+        and update time, and uses those values to update the webpage's color, the
+        reading in the center of the screen, and the timestamp in the bottom lefthand
+        corner of the page.
+    */
     function handleMessage(event) {
         var newData = JSON.parse(event.data);
         var newReading = newData.p25
@@ -52,19 +58,28 @@
         document.getElementById('lastUpdate').innerHTML = newData.update_time;
     }
     
+    /* Establish the websocket connection and give it an action for messages */
     function setupWS() {
         var ws = new WebSocket('ws://localhost:8080');
         ws.onmessage = handleMessage;
     }
     
+    /*  A wrapper function for changing the background color. I've wrapped the
+        function here to ease the semantic load above, but I recognize it may
+        be ever-so-slightly less performant this way. It could also make it easier
+        to accomodate more complex effects, like CSS gradients, in the future. */
     function changeBg(newColor) {
         document.body.style.background = newColor;
     }
     
+    
+    /*  A wrapper for changing the 'safety rating' span. Same reasoning as
+        above. */
     function changeSafety(newRating) {
         document.getElementById('safety').innerHTML = newRating;
     }
     
+    /* Initialize the websocket on page load */
     setupWS();
     
     </script>
