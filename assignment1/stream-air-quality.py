@@ -6,7 +6,7 @@
 # When there is a new reading, it is emitted to stdout as a JSON string. This
 # can be viewed as is, or streamed over a websocket using a tool like
 # websocketd. The measure for air quality is PM2.5, which is roughly the
-# concentration of particles smaller than 2.5 micrograms (often called 'fine
+# concentration of particles smaller than 2.5 micrometers (often called 'fine
 # particles') in the air. More information about this measure can be found here:
 # http://www.airnow.gov/index.cfm?action=aqibasics.particle
 #
