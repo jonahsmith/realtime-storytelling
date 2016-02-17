@@ -1,4 +1,4 @@
-# ingest.py
+# diff.py
 # Jonah Smith
 # Storytelling with Streaming Data, Spring 2016
 #
