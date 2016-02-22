@@ -1,3 +1,4 @@
 virenv/
 *.notes.txt
 *.pyc
+CONFIG*
