@@ -6,9 +6,10 @@ course: Storytelling with Streaming Data
 assignment: Assignment 2
 ---
 
-![screenshot](img/slack-screenshot.png 'A screenshot of the Slackbot. Note: the rate shown in this screenshot is not the actual rate that will trigger notifications. I modified the threshold so that I could trigger an event to show it working.')
+# WikiWatcher
 
-# Overview
+![screenshot](img/slack-screenshot.png)
+**Note**: the rate shown in this screenshot is not the actual rate that will trigger notifications. I modified the threshold so that I could trigger an event to show it working.
 
 This repository contains a collection of scripts that, when used together, alerts the user via Slack when the Wikipedia edit rate is unusually high. The details of implementation are discussed below and within scripts as comments.
 
@@ -32,7 +33,7 @@ This particular project makes alerts if the edit rate speeds up. My idea is that
 
 To that end, I have selected a threshold for the average time-between-messages below which a notification is sent out. This threshold is based on an exponential distribution, which can be used to represent the time between events in a Poisson process. If the true underlying rate is 0.6 seconds between messages, then the probability of seeing 0.03 seconds or lower between messages by chance is less than 0.05, so I have set this as the threshold. (Put another way, if the average goes below this value, the probability that the underlying rate is still 0.6 is quite low, it is probably lower/faster.) 0.05 was an arbitrary choice based on the commonly used—and maligned—p-value, which itself is based on the intuition that 5% is a pretty low chance. Thus, I have tried to ground my storytelling idea (the rate of change increasing says something about the world) in some probabilistic reasoning. (The particular value was computed using the left-tail probability using [this site](http://keisan.casio.com/exec/system/1180573222), which conveniently happens to use the beta parameterization of the exponential distribution.)
 
-The notifications are transmitted over Slack. (The repository on GitHub does not contain the URL to post on Slack, but if I provided this code to you directly, it is available on [this Slack team](jonahssandbox.slack.com).) One notification is sent at the beginning of an 'anomalous period' (when the value first dips below the threshold) and at the end (when the value first goes back into the normal range after being below the threshold for any amount of time). Bookending notifications are used because I think it is helpful to be able to tell, based on the notifications, whether a period of anonamalous activity has concluded or not. (This was partially based on my frustration with an app I have on my phone that notifies you of subway delays, but does not notify you when normal service is restored.) This design can also help track how long anomalous periods tend to last, which could be another interesting statistic.
+The notifications are transmitted over Slack. (The repository on GitHub does not contain the URL to post on Slack, but if I provided this code to you directly, it is available on [this Slack team](https://jonahssandbox.slack.com/messages/wikiwatcher/).) One notification is sent at the beginning of an 'anomalous period' (when the value first dips below the threshold) and at the end (when the value first goes back into the normal range after being below the threshold for any amount of time). Bookending notifications are used because I think it is helpful to be able to tell, based on the notifications, whether a period of anonamalous activity has concluded or not. (This was partially based on my frustration with an app I have on my phone that notifies you of subway delays, but does not notify you when normal service is restored.) This design can also help track how long anomalous periods tend to last, which could be another interesting statistic.
 
 # Included files
 
@@ -88,7 +89,7 @@ Then to start the server:
 redis-server
 ```
 
-Finally, you'll need to have a Slack channel set up and ready for a Slackbot. If I have provided this code (e.g. you're not accessing this through the GitHub repo), this is already set, although you'll want to log into the Slack team to check out the notifications it produces. The URL is [jonahssandbox.slack.com](jonahssandbox.slack.com) and I _think_ you will be able to sign up if you have an @columbia.edu email address. If this doesn't work, please contact me and I can set you up.
+Finally, you'll need to have a Slack channel set up and ready for a Slackbot. If I have provided this code (e.g. you're not accessing this through the GitHub repo), this is already set, although you'll want to log into the Slack team to check out the notifications it produces. The team is called [jonahssandbox](https://jonahssandbox.slack.com/messages/wikiwatcher/) and I _think_ you will be able to sign up if you have an @columbia.edu email address. If this doesn't work, please contact me and I can set you up.
 
 **If you are reading this directly from the GitHub repo, or you want to set up the notifications to appear on a different Slack channel, you must follow these directions.**
 
