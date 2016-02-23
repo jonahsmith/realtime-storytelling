@@ -14,8 +14,12 @@ import logging
 import json
 from socketIO_client import SocketIO, BaseNamespace
 
+# By default, the socketIO_client library logs things. Unfortunately, that will
+# mess with outputting things via stdout. As such, we're going to escalate the
+# logging level to CRITICAL--e.g. it'll only output things if something really
+# bad happens. That will break the pipe, probably, but that's probably for the
+# best, as it will require our attention anyway.
 logging.basicConfig(level=logging.CRITICAL)
-
 
 # This class is used to process messages over the RC Socket.IO channel.
 class WikiNamespace(BaseNamespace):
@@ -23,10 +27,14 @@ class WikiNamespace(BaseNamespace):
     # Run when this client receives a message.
     def on_change(self, change):
         # The 0 namespace is for 'real content' like articles (as opposed to
-        # media, category pages, etc), so we will filter for it.
+        # media, category pages, etc), so we will filter for it. Via:
         # https://www.mediawiki.org/wiki/Manual:Namespace#Built-in_namespaces
         if change.get('namespace') == 0:
+            # Print the edits to 'real content' verbatim as a JSON to stdout,
+            # to be processed by diff.py.
             print(json.dumps(change))
+            # As always, flush stdout to get it to print without getting put in
+            # a buffer!
             stdout.flush()
 
     # When the client connects, we need to subscribe to the English Wikipedia
@@ -42,4 +50,5 @@ socket = SocketIO('stream.wikimedia.org', 80)
 # defined above.
 socket.define(WikiNamespace, '/rc')
 
+# Now set up the socket and start waiting.
 socket.wait()

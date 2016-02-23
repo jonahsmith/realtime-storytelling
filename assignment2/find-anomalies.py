@@ -18,35 +18,40 @@
 #
 # It relies on a threshold to consider something an anomaly. As explained in the
 # README, the idea here is that Wikipedia reflects our changing knowledge,
-# changing narratives about what is and is not knowledge, and the darker sides
-# of human nature, like vandalism and online harrassment. For all of these, I am
-# primarily interested in particularly busy moments, or moments of great change.
-# As we discussed in class, stories require change, and a lot of edits on
-# Wikipedia reflects a lot of change in the world. As such, we will only
-# consider when we pass below a certain threshold (e.g. the average time between
-# events has dropped to a small number, or the events are happening very
-# frequently.)
+# changing narratives about what is and is not knowledge, and darker trends like
+# vandalism and online harrassment. For all of these, I am primarily interested
+# in particularly busy moments, or moments of change. As we discussed in class,
+# stories require change, and a lot of edits on Wikipedia reflects a lot of
+# change in the world. As such, we will only consider when we pass below a
+# certain threshold (e.g. the average time between events has dropped to a small
+# number, or the events are happening very frequently).
 #
 # Now that we know we are interested in an lower bound, we need to decide what
 # that bound should be. This can be done any number of ways, but one interesting
 # way is to consider it probabilistically. The time between events in a Poisson
-# process (which is often used for streams of data) is expressed as the
-# exponential distribution. So, we can use an exponential distribution with
-# parameter \beta = 0.6 (assuming time-between-event parameterization), and then
-# we can find the value at which the probability drops below a certain
-# threshold. Then, if the observation falls below that threshold, we call it an
-# anomaly, because the probability of the paramter being 0.6 with that value is
-# quite low (e.g. the probability of faster rates is higher.). Using
+# process (which is often used to model streams of data) corresonds to the
+# exponential distribution. Through my observation, it seems to be that the
+# average time-between-events is around 0.6 seconds. So, we can use an
+# exponential distribution with parameter \beta = 0.6 (assuming
+# time-between-event parameterization), and then we can find the value at which
+# the probability drops below a certain threshold. Then, if the observation
+# falls below that threshold, we call it an anomaly, because the probability of
+# the true rate being 0.6 while observing that value is quite low (e.g. the
+# probability of faster rates is higher.). Using the left tail function of
 # [this](http://keisan.casio.com/exec/system/1180573222) calculator, it seems
 # that values of 0.03 or lower will appear with probability < 0.05 if the
 # underlying rate has not actually changed, so I will set this as the threshold.
 # (0.05 is an arbitrary, though popular, choice, just based on an intuition that
-# 5% chance is pretty small.) In other words, we are assuming the rate is 0.6,
-# and if we start to see values of 0.03 seconds between messages or lower, it is
-# highly unlikely that the underlying rate is still 0.6 (it is more likely to be
-# lower, or more frequent, than that now.)
+# 5% chance is pretty small. I am inclined to go with that number because it is
+# often used as the p-value, despite its well documented limitations. Also, if
+# we were going to deploy this system, we would only want very unusual times to
+# notify the users; we wouldn't want it going off all the time.) In other words,
+# we are assuming the rate is 0.6, and if we start to see values of 0.03 seconds
+# between messages or lower, it is highly unlikely that the underlying rate is
+# still 0.6 (it is more likely to be lower, or more frequent, than that.)
 
 from sys import stdin, stdout
+from datetime import datetime
 import json
 
 # This is where we set our threshold. The process for deriving it is described
@@ -64,22 +69,28 @@ while True:
     # seconds)
     line = stdin.readline()
     avg = json.loads(line).get('avg')
-    
+
     # Now, if we find that the current average is less than the threshold,
     # we are experiencing anomalous behavior.
     if avg < THRESHOLD:
         # This is entered when the previous reading was not anomalous.
         if not anomaly:
             # Flip the anomaly boolean, so that next time we get this reading
-            # we do not print out the message again.
+            # we do not print out this message again.
             anomaly = True
-            # Print out a JSON with the message. The JSON also includes the
-            # rate and current time, which could be useful for the logging 
-            # system.
-            print(json.dumps({'message': 'An anomaly was detected.',
-                  'rate': avg,
-                  'timestamp': str(datetime.now()),
-                 }))
+            # Print out a JSON with the message. The JSON also includes the rate
+            # and current time, which could be useful for the logging system.
+            # Note that the message refers to 'rate' in terms of messages/second
+            # (the more common usage), hence why it says the edit rate is high
+            # instead of low despite this being triggered by being _below_ the
+            # time-between-message threshold. The anomaly boolean is just a
+            # machine-readable entry to help the notification system distinguish
+            # if this is the beginning or end of an anomalous period.
+            print(json.dumps({'anomaly': True,
+                              'message': 'The edit rate on Wikipedia is abnormally high right now.',
+                              'rate': avg,
+                              'timestamp': str(datetime.now()),
+                             }))
             # As always, make sure to flush the stdout to prevent Python from
             # keeping a buffer.
             stdout.flush()
@@ -90,15 +101,14 @@ while True:
         # prevent us from sending messages when nothing is happening.
         if anomaly:
             # Swap the anomaly flag, so that if the next or a subsequent
-            # reading is anomalous, it will be registered above.
+            # reading is below the threshold, it will be registered above.
             anomaly = False
             # Print a JSON string to stdout with the 'ended' message, the rate,
-            # and the current timestamp.
-            print(json.dumps({'message': 'The anomaly has ended.',
+            # the current timestamp, and the anomaly flag signalling the end.
+            print(json.dumps({'anomaly': False,
+                              'message': 'The edit rate on Wikipedia is back to normal.',
                               'rate': avg,
                               'timestamp': str(datetime.now()),
                              }))
             # Again, prevent Python from buffering the stdout.
             stdout.flush()
-        
-        

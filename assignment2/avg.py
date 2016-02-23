@@ -3,11 +3,14 @@
 # Storytelling with Streaming Data, Spring 2016
 #
 # This script periodically takes the average of all of the values in a Redis
-# database. In principle, these values could be anything, but it was designed
-# to be used with the flow rate scripts, which contain time diffs between
-# consecutive Wikipedia edits in seconds. These entries are set to expire every
-# 120 seconds. These averages create another stream, which are transmitted
-# through stdout.
+# database. In principle, these values could be anything, but it was designed to
+# be used with the flow rate scripts, which contain time diffs between
+# consecutive Wikipedia edits events, in seconds. These entries are set to
+# expire every 120 seconds. These averages form another stream, which are
+# transmitted through stdout.
+#
+# This script is an elaboration of:
+# https://github.com/mikedewar/RealTimeStorytelling/blob/master/2/avg.py
 
 from redis import Redis
 import json
@@ -16,10 +19,11 @@ from time import sleep
 
 # Connect to the redis db server over the default port (6379). Note that the
 # redis server process needs to be running already! In fact, it should be
-# running, and there should be another process stuffing time diffs into it.
+# running, and there should be another process stuffing time diffs into it. In
+# this repository, 1-stream-ingest.sh serves that purpose.
 db = Redis()
 
-# Repeat the averaging indefinitely. 
+# Repeat the averaging indefinitely.
 while True:
     # First, grab all the keys from the db
     keys = db.keys('*')
@@ -27,29 +31,27 @@ while True:
     # Now, grab all of the entries for those keys
     entries = db.mget(keys)
 
-    # Values come out of the Redis database as strings, but we want to compute
-    # the average, so we'll need to turn them into floats. Note that in the
+    # Values come out of the Redis database as strings (encoding the Unix epoch
+    # time of the event on the Wikipedia servers), but we want to compute the
+    # average, so we'll need to turn them into floats. Note that in the
     # motivating example of Wikipedia edits, the time diffs are actually ints.
     # I'm converting to floats because it will make the eventual division a bit
-    # simpler (since integer division in Python produces an integer, whereas
-    # we want fractional seconds for our average flow rate), and it also
+    # simpler (since integer division in Python produces an integer, whereas we
+    # want fractional seconds for our average flow rate), and it also
     # generalizes to cases when the time diffs are fractional to begin with.
     #
     # Note that this is going to fail occasionally because we are pulling keys,
     # and then we are retrieving all the entries later. The time between these
     # two events may be enough for some of the entries to expire and be removed
-    # from the database. In that case, we get an array with mostly numbers,
-    # but also at least one None. We have two options: ignore the entries that
+    # from the database. In that case, we get an array with mostly numbers, but
+    # also at least one None. We have two options: ignore the entries that
     # disappeared prematurely (e.g. [float(t) for t in test if t is not None]),
     # or skip the iteration. I have decided to skip the iteration because I
     # think it is more accurate. Simply not including that value returns a
     # different result than _either_ if the entry hadn't disappeared
     # prematurely, or if you recollected keys and entries. As such, other than
     # maintaining a steady flow of averages (which is not necessary in this
-    # situation), it is hard to justify ignoring the None entries. The side
-    # effect is that if the Redis db is accidentally being used for something
-    # else (that is not using number values), it will prevent us from
-    # calculating averages that are not what we intended.
+    # situation), it is hard to justify ignoring the None entries.
     try:
         time_diffs = [float(entry) for entry in entries]
     # Only accept TypeError, which is what happens when None appears
@@ -64,8 +66,11 @@ while True:
     # Print that average to stdout, as a JSON string with a single key: avg.
     print(json.dumps( {'avg': avg } ))
 
-    # Make sure to flush stdout, so that we don't end up with Python's buffer.
+    # Make sure to flush stdout, so that the flow isn't interrupted by Python's
+    # buffer.
     stdout.flush()
 
-    # Rest for 1 second before repeating the process.
+    # Rest for 1 second before repeating the process. This is arbitrary, and
+    # again could have an influence on the outcome. I selected it because it
+    # seemed to be a reasonable pace.
     sleep(1)
