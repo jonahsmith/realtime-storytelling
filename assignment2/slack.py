@@ -95,6 +95,6 @@ while True:
     # Now we should check to make sure that the post went through. The status
     # code we are looking for is 200 (OK). If we don't get that, then we should
     # just fall back to printing to stdout.
-    if r.status_code == 200:
+    if r.status_code != 200:
         print('The following message failed to be delivered to Slack:\n' + alert_text + '\n')
         stdout.flush()
