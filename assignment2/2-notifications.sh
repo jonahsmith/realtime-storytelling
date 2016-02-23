@@ -1,4 +1,4 @@
-#!env/bin/sh
+#!/bin/sh
 
 # Jonah Smith
 # 2-notifications.sh
