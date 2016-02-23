@@ -83,7 +83,7 @@ These are all in the file requirements.txt, so you can install them all at once 
 pip install -r requirements.txt
 ```
 
-You also need the Redis in-memory database system installed on your machine, and the server should be running on the default port when you try to run this notification system. If you don't have it installed yet, you can do so using brew (or your prefered package manager):
+You also need the Redis in-memory database system installed on your machine, and the server should be running on the default port when you try to run this notification system. If you don't have it installed yet, you can do so using brew (or your preferred package manager):
 
 ```
 brew install redis
