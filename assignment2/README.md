@@ -8,12 +8,12 @@ assignment: Assignment 2
 
 # WikiWatcher
 
-![screenshot](img/slack-screenshot.png)
-**Note**: the rate shown in this screenshot is not the actual rate that will trigger notifications. I modified the threshold so that I could trigger an event to show it working.
-
 This repository contains a collection of scripts that, when used together, alerts the user via Slack when the Wikipedia edit rate is unusually high. The details of implementation are discussed below and within scripts as comments.
 
 (Please note that because my [last project](https://github.com/jonahsmith/realtime-storytelling/tree/master/assignment1) used a stream with an update rate fixed at once per hour, I have decided to change data streams for this project.)
+
+![screenshot](img/slack-screenshot.png)
+**Note**: the rate shown in this screenshot is not the actual rate that will trigger notifications. I modified the threshold so that I could trigger an event to show it working.
 
 # The data
 
@@ -33,7 +33,7 @@ This particular project makes alerts if the edit rate speeds up. My idea is that
 
 To that end, I have selected a threshold for the average time-between-messages below which a notification is sent out. This threshold is based on an exponential distribution, which can be used to represent the time between events in a Poisson process. If the true underlying rate is 0.6 seconds between messages, then the probability of seeing 0.03 seconds or lower between messages by chance is less than 0.05, so I have set this as the threshold. (Put another way, if the average goes below this value, the probability that the underlying rate is still 0.6 is quite low, it is probably lower/faster.) 0.05 was an arbitrary choice based on the commonly used—and maligned—p-value, which itself is based on the intuition that 5% is a pretty low chance. Thus, I have tried to ground my storytelling idea (the rate of change increasing says something about the world) in some probabilistic reasoning. (The particular value was computed using the left-tail probability using [this site](http://keisan.casio.com/exec/system/1180573222), which conveniently happens to use the beta parameterization of the exponential distribution.)
 
-The notifications are transmitted over Slack. (The repository on GitHub does not contain the URL to post on Slack, but if I provided this code to you directly, it is available on [this Slack team](https://jonahssandbox.slack.com/messages/wikiwatcher/).) One notification is sent at the beginning of an 'anomalous period' (when the value first dips below the threshold) and at the end (when the value first goes back into the normal range after being below the threshold for any amount of time). Bookending notifications are used because I think it is helpful to be able to tell, based on the notifications, whether a period of anonamalous activity has concluded or not. (This was partially based on my frustration with an app I have on my phone that notifies you of subway delays, but does not notify you when normal service is restored.) This design can also help track how long anomalous periods tend to last, which could be another interesting statistic.
+The notifications are transmitted over Slack. (The repository on GitHub does not contain the URL to post on Slack, but if I provided this code to you directly, it is available on [this Slack team](https://jonahssandbox.slack.com/messages/wikiwatcher/).) One notification is sent at the beginning of an 'anomalous period' (when the value first dips below the threshold) and at the end (when the value first goes back into the normal range after being below the threshold for any amount of time). Bookending notifications are used because I think it is helpful to be able to tell, based on the notifications, whether a period of anomalous activity has concluded or not. (This was partially based on my frustration with an app I have on my phone that notifies you of subway delays, but does not notify you when normal service is restored.) This design can also help track how long anomalous periods tend to last, which could be another interesting statistic.
 
 # Included files
 
@@ -77,7 +77,13 @@ Please use pip for some other Python package manager to install the following no
 - `redis==2.10.5`
 - `requests==2.9.1`
 
-Also, you should have the Redis in-memory database system installed on your machine, and the server should be running on the default port when you try to run this. If you don't have it installed yet, you can do so using brew:
+These are all in the file requirements.txt, so you can install them all at once using:
+
+```
+pip install -r requirements.txt
+```
+
+You also need the Redis in-memory database system installed on your machine, and the server should be running on the default port when you try to run this notification system. If you don't have it installed yet, you can do so using brew (or your prefered package manager):
 
 ```
 brew install redis
