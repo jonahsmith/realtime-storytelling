@@ -2,3 +2,4 @@ virenv/
 *.notes.txt
 *.pyc
 CONFIG*
+*.rdb
