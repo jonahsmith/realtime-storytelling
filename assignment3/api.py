@@ -1,0 +1,46 @@
+# api.py
+# Jonah Smith
+# Assignment 3, Storytelling with Streaming Data, Spring 2016
+#
+# This script connects to a Redis database (table 0 with time diffs between
+# events, table 1 with a distribution over articles), and defines an API to
+# access certain calculations, including the rate, the histogram, the entropy,
+# and the probability of a given message.
+
+from flask import Flask, request
+import json
+import util
+
+app = Flask(__name__)
+
+
+@app.route('/rate')
+def get_rate():
+    rate = util.rate()
+    return json.dumps( {'avg_rate': rate})
+
+
+@app.route('/histogram')
+def get_histogram():
+    hist = util.histogram()
+    return json.dumps(hist)
+
+
+@app.route('/entropy')
+def get_entropy():
+    entropy = util.entropy()
+    return json.dumps({'entropy': entropy})
+
+
+@app.route('/probability')
+def get_probability():
+    title = request.args.get('title')
+    if not title:
+        return json.dumps({'error': 'no \'title\' argument given'})
+    prob = util.probability(title)
+    response = { 'title': title, 'p': prob }
+    return json.dumps(response)
+
+
+if __name__ == '__main__':
+    app.run(debug=True)
