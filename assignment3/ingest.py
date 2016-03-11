@@ -7,6 +7,7 @@
 # This script ingests a socket.io websocket produced by Wikimedia. The socket
 # spits out changes to Wikipedia changes as they are made. The schema is
 # available here: https://www.mediawiki.org/wiki/Manual:RCFeed#Properties
+# This version subscribes to the top twelve largest Wikipedias.
 #
 # Note: this ingestion code is based on the example provided by Wikipedia:
 # https://wikitech.wikimedia.org/wiki/RCStream#Python
@@ -23,15 +24,26 @@ from socketIO_client import SocketIO, BaseNamespace
 # best, as it will require our attention anyway.
 logging.basicConfig(level=logging.CRITICAL)
 
+
+# These are the thirteen biggest Wikipedias by article size, as measured by:
+# https://en.wikipedia.org/wiki/List_of_Wikipedias I have selected these because
+# they are the only Wikis with over one million articles, which I think captures
+# the idea of a 'big' Wikipedia language site.
+languages = ('en.wikipedia.org', 'sv.wikipedia.org', 'ceb.wikipedia.org',
+             'de.wikipedia.org', 'nl.wikipedia.org', 'fr.wikipedia.org',
+             'ru.wikipedia.org', 'war.wikipedia.org', 'it.wikipedia.org',
+             'es.wikipedia.org', 'pl.wikipedia.org', 'vi.wikipedia.org',
+             'ja.wikipedia.org')
+
+
 # This class is used to process messages over the RC Socket.IO channel.
 class WikiNamespace(BaseNamespace):
 
     # Run when this client receives a message.
     def on_change(self, change):
         # The 0 namespace is for 'real content' like articles (as opposed to
-        # media, category pages, etc), so we will filter for it. We also
-        # only want edits, rather than new pages or logs.
-        if change.get('namespace') == 0 and change.get('type') == 'edit':
+        # media, category pages, etc), so we will filter for it.
+        if change.get('namespace') == 0:
             # Print the edits to 'real content' verbatim as a JSON to stdout,
             # to be processed by diff.py.
             print(json.dumps(change))
@@ -39,11 +51,11 @@ class WikiNamespace(BaseNamespace):
             # a buffer!
             stdout.flush()
 
-    # When the client connects, we need to subscribe to the English Wikipedia
-    # stream. I figured out the correct argument for 'subscribe' through an
-    # educated guess.
+    # When the client connects, we need to subscribe to the Wikipedias for the
+    # languages declared above.
     def on_connect(self):
-        self.emit('subscribe', 'en.wikipedia.org')
+        for lang in languages:
+            self.emit('subscribe', lang)
 
 # Establish the connection with the SocketIO client.
 socket = SocketIO('stream.wikimedia.org', 80)

@@ -82,20 +82,38 @@ while True:
                           '{d} seconds.').format(m=alert.get('message'),
                                                 d=duration_est)
 
+    # Same logic as above. If the type is high_entropy...
+    elif alert.get('type') == 'high_entropy':
+        # ... and it's the beginning of an anomaly, then we log the datetime
+        # to a variable and spit out an alert.
+        if alert.get('anomaly'):
+            # Grabbing and decoding the timestamp.
+            begin_ent= datetime.strptime(alert.get('timestamp'), '%Y-%m-%d %H:%M:%S.%f')
+            alert_text = ('Alert! The entropy has gone above the threshold.'
+                          ' Current entropy: {}').format(alert.get('entropy'))
+        # Or if it's the end, we use the time to get a time diff between
+        # beginning and end, and then we set the message to mention that.
+        else:
+            # Grabbing and decoding the timestamp, computing a diff, and then
+            # setting up the message.
+            end_ent = datetime.strptime(alert.get('timestamp'), '%Y-%m-%d %H:%M:%S.%f')
+            duration_ent = (end_ent - begin_ent).total_seconds()
+            duration_est_ent = int(round(duration_ent))
+            alert_text = 'Alert! The entropy is back to normal. That lasted {} seconds.'.format(duration_est_ent)
+
+    # The other type of message is 'unlikely message', which is to say that we
+    # saw something we wouldn't have expected, based on the histogram. This
+    # alert is simpler... just output the message as the alert.
     elif alert.get('type') == 'unlikely_message':
         alert_text = (u'Alert! An unlikely message, \'{}\', has appeared in '
-                      'the stream!').format(alert.get('title'))
+                      'the stream!').format(alert.get('message'))
 
-    elif alert.get('type') == 'low_entropy':
-        if alert.get('anomaly'):
-            begin = datetime.strptime(alert.get('timestamp'), '%Y-%m-%d %H:%M:%S.%f')
-            alert_text = ('Alert! The entropy has fallen below the threshold.'
-                          ' Current entropy: {}').format(alert.get('entropy'))
-        else:
-            end = datetime.strptime(alert.get('timestamp'), '%Y-%m-%d %H:%M:%S.%f')
-            duration = (end - begin).total_seconds()
-            duration_est = int(round(duration))
-            alert_text = 'Alert! The entropy is back to normal. That lasted {} seconds.'.format(duration_est)
+    # If we don't recognize the message type, don't do anything. This is to
+    # avoid spamming the user with poorly formed messaged. The other option
+    # might be to just dump the json as a string, but again, I want to keep the
+    # user interaction as clean as possible.
+    else:
+        continue
 
     # The Slack API requires just this one argument, which is the content of
     # the message. We could build this out if we wanted, as detailed here:
@@ -105,7 +123,7 @@ while True:
     # The Slack API specifies the data be encoded as a JSON string in the body
     # of the post request. This code accomplishes that. (The `json` parameter
     # will take a dictionary and post it as a JSON string, equivalent to:
-    # data=json.dumps(data).)
+    # data=json.dumps(data))
     r = requests.post(url, json=data)
 
     # Now we should check to make sure that the post went through. The status

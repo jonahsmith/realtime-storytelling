@@ -2,53 +2,53 @@
 # Jonah Smith
 # Storytelling with Streaming Data, Spring 2016
 #
-# This script receives a stream of average time-between-messages (computed by
-# avg.py from the redis database, which has all of the diffs from the previous
-# 120 seconds) over stdin, and emits a JSON string to stdout if the average time
-# between messages is lower than a certain value (discussed below). When the
-# anomalous period ends (e.g. the average passes from below the threshold to
-# above it), the program sends an 'ending' message, also as a JSON. There is
-# also a rudimentary state management system to ensure that messages are only
-# transmitted over stdout at the beginning and end of anomalous periods. This
-# will continue indefinitely until the program is terminated. The bookending
-# notifications are designed to help people keep track of when anomalous periods
-# are happening and when they end. In addition to helping end users, the two
-# notifications can also be used to analyze how long these anomalous periods
-# tend to last.
+# This script receives a stream of average time-between-messages (rate) and
+# entropy calculations from poll-stats.py, which uses the Redis db, and emits a
+# JSON string to stdout if the average time-between-messages or entropy is lower
+# than a certain value (discussed below). When the anomalous period ends (e.g.
+# the average passes from below the threshold to above it), the program sends an
+# 'ending' message, also as a JSON. There is also a rudimentary state management
+# system to ensure that messages are only transmitted over stdout at the
+# beginning and end of anomalous periods. This will continue indefinitely until
+# the program is terminated. The bookending notifications are designed to help
+# people keep track of when anomalous periods are happening and when they end.
+# In addition to helping end users, the two notifications can also be used to
+# analyze how long these anomalous periods tend to last (as I do in slack.py).
 #
-# It relies on a threshold to consider something an anomaly. As explained in the
-# README, the idea here is that Wikipedia reflects our changing knowledge,
-# changing narratives about what is and is not knowledge, and darker trends like
-# vandalism and online harrassment. For all of these, I am primarily interested
-# in particularly busy moments, or moments of change. As we discussed in class,
-# stories require change, and a lot of edits on Wikipedia reflects a lot of
-# change in the world. As such, we will only consider when we pass below a
-# certain threshold (e.g. the average time between events has dropped to a small
-# number, or the events are happening very frequently).
+# This file depends on two thresholds to consider something an anomaly.
 #
-# Now that we know we are interested in an lower bound, we need to decide what
-# that bound should be. This can be done any number of ways, but one interesting
-# way is to consider it probabilistically. The time between events in a Poisson
-# process (which is often used to model streams of data) corresonds to the
-# exponential distribution. Through my observation, it seems to be that the
-# average time-between-events is around 0.6 seconds. So, we can use an
-# exponential distribution with parameter \beta = 0.6 (assuming
+# RATE
+# As we discussed in class, stories require change, and a lot of edits on
+# Wikipedia reflects a lot of change in the world. As such, we will only
+# consider when we pass below a certain threshold (e.g. the average time between
+# events has dropped to a small number, or the events are happening very
+# frequently). Now that we know we are interested in an lower bound, we need to
+# decide what that bound should be. This can be done any number of ways, but one
+# interesting way is to consider it probabilistically. The time between events
+# in a Poisson process (which is often used to model streams of data) corresonds
+# to the exponential distribution. Through my observation, it seems to be that
+# the average time-between-events is around 0.27 seconds. So, we can use an
+# exponential distribution with parameter \beta = 0.27 (assuming
 # time-between-event parameterization), and then we can find the value at which
 # the probability drops below a certain threshold. Then, if the observation
 # falls below that threshold, we call it an anomaly, because the probability of
-# the true rate being 0.6 while observing that value is quite low (e.g. the
+# the true rate being 0.27 while observing that value is quite low (e.g. the
 # probability of faster rates is higher.). Using the left tail function of
 # [this](http://keisan.casio.com/exec/system/1180573222) calculator, it seems
-# that values of 0.03 or lower will appear with probability < 0.05 if the
+# that values of 0.015 or lower will appear with probability < 0.05 if the
 # underlying rate has not actually changed, so I will set this as the threshold.
 # (0.05 is an arbitrary, though popular, choice, just based on an intuition that
 # 5% chance is pretty small. I am inclined to go with that number because it is
 # often used as the p-value, despite its well documented limitations. Also, if
 # we were going to deploy this system, we would only want very unusual times to
 # notify the users; we wouldn't want it going off all the time.) In other words,
-# we are assuming the rate is 0.6, and if we start to see values of 0.03 seconds
-# between messages or lower, it is highly unlikely that the underlying rate is
-# still 0.6 (it is more likely to be lower, or more frequent, than that.)
+# we are assuming the rate is 0.27, and if we start to see values of 0.15
+# seconds between messages or lower, it is highly unlikely that the underlying
+# rate is still 0.6 (it is more likely to be lower, or more frequent, than
+# that.)
+#
+# ENTROPY
+# I selected the entropy threshold by 
 
 from sys import stdin, stdout
 from datetime import datetime
@@ -56,9 +56,9 @@ import json
 
 # This is where we set our rate threshold. The process for deriving it is
 # described in the comments above.
-RATE_THRESHOLD = 0.03
+RATE_THRESHOLD = 0.015
 
-ENT_THRESHOLD = 8.06
+ENT_THRESHOLD = 2
 
 # This is a variable that will keep track of whether the system is currently
 # in an anomalous period or not. This is the main mechanism for preventing
@@ -117,21 +117,32 @@ while True:
             # Again, prevent Python from buffering the stdout.
             stdout.flush()
 
-    if readings.get('entropy') < ENT_THRESHOLD:
+    # Almost identical logic to above. If we find the entropy larger than the
+    # treshold...
+    if readings.get('entropy') > ENT_THRESHOLD:
+        # And we are not currently in a high-entropy state...
         if not ent_anomaly:
+            # Set the current state to high entropy, so we don't send repetitive
+            # messages
             ent_anomaly = True
+            # Print the message to stdout, to be sent via slack.
             print(json.dumps({
-                                'type': 'low_entropy',
+                                'type': 'high_entropy',
                                 'anomaly': True,
                                 'entropy': readings.get('entropy'),
                                 'timestamp': str(datetime.now())
                              }))
             stdout.flush()
+    # If it's not above the entropy...
     else:
+        # We need to check if we're currently in a high entropy time. Don't do
+        # anything if we aren't.
         if ent_anomaly:
+            # If we are, switch it off (the anomalous time is over), and then
+            # spit out the message to be trasmitted via Slack.
             ent_anomaly = False
             print(json.dumps({
-                                'type': 'low_entropy',
+                                'type': 'high_entropy',
                                 'anomaly': False,
                                 'entropy': readings.get('entropy'),
                                 'timestamp': str(datetime.now())

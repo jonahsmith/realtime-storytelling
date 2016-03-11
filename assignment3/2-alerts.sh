@@ -23,6 +23,7 @@ cleanup() {
 
 ctl_c() {
   echo "Killing the alert processes..."
+  echo "(You may also want to `ps -A | grep python` to make sure everything was cleaned up.)"
   cleanup
   exit 0
 }

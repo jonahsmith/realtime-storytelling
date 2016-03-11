@@ -34,11 +34,11 @@ def get_entropy():
 
 @app.route('/probability')
 def get_probability():
-    title = request.args.get('title')
+    msg = request.args.get('message')
     if not title:
-        return json.dumps({'error': 'no \'title\' argument given'})
-    prob = util.probability(title)
-    response = { 'title': title, 'p': prob }
+        return json.dumps({'error': 'no \'message\' argument given'})
+    prob = util.probability(msg)
+    response = { 'message': msg, 'p': prob }
     return json.dumps(response)
 
 
