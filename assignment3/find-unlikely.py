@@ -9,8 +9,14 @@
 # the unusual message. These are meant to be picked up by slack.py and sent to
 # the notification system.
 #
-# A message whose probability is less than [], as judged by the entries in the
-# Redis database, is considered unlikely. I picked this probability because [].
+# A message whose probability is less than 0.05, as judged by the entries in the
+# Redis database, is considered unlikely. I chose this number, again, largely
+# because of the guidance provided by p-values. Ultimately, this is going to
+# notify us any time an edit event is logged for a language that represents less
+# than 5% of the stream. Personally, I would be curious to see what those edits
+# are, just because they are so rare. Also, looking at a typical distribution, I
+# have found that there are usually only a few languages that match this, so we
+# will not get bombarded.
 
 from sys import stdin, stdout
 import json

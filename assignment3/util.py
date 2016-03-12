@@ -76,9 +76,9 @@ def rate():
 def entropy():
     # First, calculate the histogram.
     hist = histogram()
-    # Now, our ugly entropy calculation. Inside, we have a list comprehension
-    # that goes through each entry and calculate plog(p). Then we sum those, and
-    # then negate the result..
+    # Now, our entropy calculation. Inside, we have a list comprehension that
+    # goes through each entry and calculate p*log(p). Then we sum those, and
+    # then negate the result.
     entropy = -sum( [p*log(p) for p in hist.values()] )
     return entropy
 

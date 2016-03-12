@@ -7,7 +7,7 @@
 # access certain calculations, including the rate, the histogram, the entropy,
 # and the probability of a given message.
 
-from flask import Flask, request
+from flask import Flask, request, render_template
 import json
 import util
 
@@ -40,6 +40,11 @@ def get_probability():
     prob = util.probability(msg)
     response = { 'message': msg, 'p': prob }
     return json.dumps(response)
+
+
+@app.route('/vis')
+def get_vis():
+    return render_template('histogram.html')
 
 
 if __name__ == '__main__':

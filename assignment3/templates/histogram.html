@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<!--
+Jonah Smith
+histogram.html
+Assignment 3, Storytelling with Streaming Data, Spring 2016
+
+This webpage makes a request to the API for the histogram, and uses it to build
+a very simple graphical representation of it.
+
+This is a modified version of Mike Bostock's bar plot example:
+https://bl.ocks.org/mbostock/3310560
+
+With some extra ideas from:
+https://bl.ocks.org/mbostock/3885304
+-->
+<meta charset="utf-8">
+<style>
+
+body {
+  font: 10px sans-serif;
+}
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.bar {
+  fill: steelblue;
+}
+
+.x.axis path {
+  display: none;
+}
+
+</style>
+<body>
+  <h1>Histogram of Wikipedia edit events, by language</h1>
+<script src="//d3js.org/d3.v3.min.js"></script>
+<script>
+
+var margin = {top: 20, right: 30, bottom: 30, left: 40},
+    width = 960 - margin.left - margin.right,
+    height = 500 - margin.top - margin.bottom;
+
+var x = d3.scale.ordinal()
+    .rangeRoundBands([0, width], 0.1, 0.2);
+
+var y = d3.scale.linear()
+    .range([height, 0]);
+
+var svg = d3.select("body").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+  .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+d3.json("/histogram", function(error, hist) {
+  // JSONs are unordered, so we need to map it into a list, which is ordered.
+  // That will ensure that the keys are properly matched with values.
+  var data = d3.entries(hist);
+
+  x.domain( data.map(function(d) { return d.key; }) );
+  y.domain([0, d3.max(data, function(d) { return d.value; })]);
+
+  // Let's print out the name of the actual language, not the name of the Wiki.
+  // To do that, we'll set up a mapping between the two, and then call it in
+  // tickFormat() for the axis.
+  wikinames = {
+    "enwiki": "English",
+    "frwiki": "French",
+    "svwiki": "Swedish",
+    "cebwiki": "Cebuano",
+    "dewiki": "German",
+    "nlwiki": "Dutch",
+    "frwiki": "French",
+    "ruwiki": "Russian",
+    "warwiki": "Waray",
+    "itwiki": "Italian",
+    "eswiki": "Spanish",
+    "plwiki": "Polish",
+    "viwiki": "Vietnamese",
+    "jawiki": "Japanese"
+  }
+  svg.append("g")
+      .attr("class", "x axis")
+      .attr("transform", "translate(0," + height + ")")
+      .call(d3.svg.axis().scale(x).orient("bottom").tickFormat(function(d) { return wikinames[d]; } ));
+
+  svg.append("g")
+      .attr("class", "y axis")
+      .call(d3.svg.axis().scale(y).orient("left").ticks(10, "%"))
+      .append("text")
+      .attr("transform", "rotate(-90)")
+      .attr("y", 6)
+      .attr("dy", ".71em")
+      .style("text-anchor", "end")
+      .text("Frequency");
+
+  svg.selectAll(".bar")
+      .data(data)
+    .enter().append("rect")
+      .attr("class", "bar")
+      .attr("x", function(d) { return x(d.key); })
+      .attr("width", x.rangeBand())
+      .attr("y", function(d) { return y(d.value); })
+      .attr("height", function(d) { return height - y(d.value); });
+});
+
+</script>
