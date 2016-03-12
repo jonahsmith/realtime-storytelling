@@ -26,6 +26,8 @@ The probability threshold for alerts for unusual messages is 0.05, again mimicki
 
 For entropy, my feeling is that we are mainly interested in situations where the distribution over the languages evens out. Certain languages (like English) generally dominate the stream, so there is pretty low entropy to begin with. As such, if a language like Cebuano, which based on my observation rarely gets edits, suddenly has a lot of edits, the entropy will rise because the distribution will even out. As such, we will set a threshold above which an entropy alert is triggered. I have observed that the entropy is often around 1.7. With thirteen categories, the maximum entropy is `-(13*(1/13)*log(1/13)) = log(13) = 2.565`. As a first pass, we can say that we should trigger an alert if we're halfway to the perfect entropy scenario from the typical scenario. That happens at `1.7 + (2.565 - 1.7)/2 = 2.133`. Rounding, we will set the threshold to 2.1. In practice, we might adjust this depending on whether we feel like the frequency it yields is at a desirable level. (We would raise it if we're getting too many alerts, or lower it if we're not getting enough.)
 
+As with my last assignment, alerts are sent through Slack, as it seems like Slack is quickly becoming an important part of many office environments. Note, if I provided this repository
+
 # How it works
 
 ## Backend
@@ -68,9 +70,13 @@ poll-stats.py -> find-anomalies.py -> slack.py
 ingest.py -> find-unlikely.py -> slack.py
 ```
 
-The first one is the evolution of the previous alert system. Every second, `poll-stats.py` calculates the rate and the entropy and emits those. `find-anomalies.py` will use those messages to determine if they are anomalous, and if they are, they will emit the appropriate message over stdout to `slack.py`, which sends the messages to Slack.
+The first one is the evolution of the previous alert system. Every second, `poll-stats.py` calculates the rate and the entropy and emits those. `find-anomalies.py` will use those messages to determine if they are anomalous, and if they are, they will emit the appropriate message over stdout to `slack.py`, which sends the messages to Slack. NOTE: before you can use `slack.py`, you must create a file called `CONFIG_SLACK.py`, which contains the endpoint URL for your Slack channel in the following format:
 
-The second connects to the stream coming from `ingest.py`. `find-unlikely.py` then calculates the probability of each message as it arrives. If it is below a certain threshold, it spits out a message that is sent by `slack.py`.
+```
+url = 'https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX'
+```
+
+The second command connects to the stream coming from `ingest.py`. `find-unlikely.py` then calculates the probability of each message as it arrives. If it is below a certain threshold, it spits out a message that is sent by `slack.py`.
 
 ## Misc.
 
@@ -83,6 +89,8 @@ The second connects to the stream coming from `ingest.py`. `find-unlikely.py` th
 Run `pip install -r requirements.txt` to install the Python requirements.
 
 You also need [Redis](http://redis.io/), and it should be running on the default port.
+
+Finally, you'll need to have a Slack channel set up and ready for a Slackbot. If I have provided this code (e.g. you're not accessing this through the GitHub repo), this is already set, although you'll want to log into the Slack team to check out the notifications it produces. The team is called jonahssandbox and I think you will be able to sign up if you have an @columbia.edu email address. If this doesn't work, please contact me and I can set you up.
 
 ## Launching the backend
 

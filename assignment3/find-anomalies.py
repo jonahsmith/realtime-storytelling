@@ -47,8 +47,8 @@
 # rate is still 0.6 (it is more likely to be lower, or more frequent, than
 # that.)
 #
-# ENTROPY
-# I selected the entropy threshold by 
+# ENTROPY (this same text appears in the README)
+# I selected the entropy threshold by
 
 from sys import stdin, stdout
 from datetime import datetime
@@ -58,7 +58,7 @@ import json
 # described in the comments above.
 RATE_THRESHOLD = 0.015
 
-ENT_THRESHOLD = 2
+ENT_THRESHOLD = 2.1
 
 # This is a variable that will keep track of whether the system is currently
 # in an anomalous period or not. This is the main mechanism for preventing
