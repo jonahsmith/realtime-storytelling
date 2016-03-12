@@ -57,6 +57,7 @@ var svg = d3.select("body").append("svg")
   .append("g")
     .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
+// Make the request to the API we have built.
 d3.json("/histogram", function(error, hist) {
   // JSONs are unordered, so we need to map it into a list, which is ordered.
   // That will ensure that the keys are properly matched with values.
