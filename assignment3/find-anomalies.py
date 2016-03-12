@@ -44,11 +44,25 @@
 # notify the users; we wouldn't want it going off all the time.) In other words,
 # we are assuming the rate is 0.27, and if we start to see values of 0.15
 # seconds between messages or lower, it is highly unlikely that the underlying
-# rate is still 0.6 (it is more likely to be lower, or more frequent, than
+# rate is still 0.27 (it is more likely to be lower, or more frequent, than
 # that.)
 #
 # ENTROPY (this same text appears in the README)
-# I selected the entropy threshold by
+# For entropy, my feeling is that we are mainly interested in situations where
+# the distribution over the languages evens out. Certain languages (like
+# English) generally dominate the stream, so there is pretty low entropy to
+# begin with. As such, if a language like Cebuano, which based on my observation
+# rarely gets edits, suddenly has a lot of edits, the entropy will rise because
+# the distribution will even out. As such, we will set a threshold above which
+# an entropy alert is triggered. I have observed that the entropy is often
+# around 1.7. With thirteen categories, the maximum entropy is
+# `-(13*(1/13)*log(1/13)) = log(13) = 2.565`. As a first pass, we can say that
+# we should trigger an alert if we're halfway to the perfect entropy scenario
+# from the typical scenario. That happens at `1.7 + (2.565 - 1.7)/2 = 2.133`.
+# Rounding, we will set the threshold to 2.1. In practice, we might adjust this
+# depending on whether we feel like the frequency it yields is at a desirable
+# level. (We would raise it if we're getting too many alerts, or lower it if
+# we're not getting enough.)
 
 from sys import stdin, stdout
 from datetime import datetime
@@ -92,7 +106,7 @@ while True:
             print(json.dumps({'type': 'rate_anomaly',
                               'anomaly': True,
                               'message': 'The edit rate on Wikipedia is abnormally high right now.',
-                              'rate': avg,
+                              'rate': readings.get('rate'),
                               'timestamp': str(datetime.now()),
                              }))
             # As always, make sure to flush the stdout to prevent Python from
@@ -109,9 +123,10 @@ while True:
             rate_anomaly = False
             # Print a JSON string to stdout with the 'ended' message, the rate,
             # the current timestamp, and the anomaly flag signalling the end.
-            print(json.dumps({'anomaly': False,
+            print(json.dumps({'type': 'rate_anomaly',
+                              'anomaly': False,
                               'message': 'The edit rate on Wikipedia is back to normal.',
-                              'rate': avg,
+                              'rate': readings.get('rate'),
                               'timestamp': str(datetime.now()),
                              }))
             # Again, prevent Python from buffering the stdout.
