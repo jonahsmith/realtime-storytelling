@@ -26,7 +26,7 @@ The probability threshold for alerts for unusual messages is 0.05, again mimicki
 
 For entropy, my feeling is that we are mainly interested in situations where the distribution over the languages evens out. Certain languages (like English) generally dominate the stream, so there is pretty low entropy to begin with. As such, if a language like Cebuano, which based on my observation rarely gets edits, suddenly has a lot of edits, the entropy will rise because the distribution will even out. As such, we will set a threshold above which an entropy alert is triggered. I have observed that the entropy is often around 1.7. With thirteen categories, the maximum entropy is `-(13*(1/13)*log(1/13)) = log(13) = 2.565`. As a first pass, we can say that we should trigger an alert if we're halfway to the perfect entropy scenario from the typical scenario. That happens at `1.7 + (2.565 - 1.7)/2 = 2.133`. Rounding, we will set the threshold to 2.1. In practice, we might adjust this depending on whether we feel like the frequency it yields is at a desirable level. (We would raise it if we're getting too many alerts, or lower it if we're not getting enough.)
 
-As with my last assignment, alerts are sent through Slack, as it seems like Slack is quickly becoming an important part of many office environments. Note, if I provided this repository
+As with my last assignment, alerts are sent through Slack, as it seems like Slack is quickly becoming an important part of many office environments.
 
 # How it works
 
